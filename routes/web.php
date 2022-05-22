@@ -33,6 +33,8 @@ Route::middleware([
     Route::get('/dashboard', function () {
         return Inertia::render('Dashboard');
     })->name('dashboard');
-    
-    Route::get('/plans', [SubscriptionController::class, 'plans'])->name('plans');
+    Route::name('plans.')->group(function () {
+        Route::get('/plans', [SubscriptionController::class, 'index'])->name('index');
+        Route::put('/plans', [SubscriptionController::class, 'update'])->name('update');
+    });
 });
