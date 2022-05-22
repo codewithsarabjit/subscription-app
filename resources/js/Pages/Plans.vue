@@ -1,6 +1,16 @@
 <script setup>
 import AppLayout from '@/Layouts/AppLayout.vue';
 import PricingCard from '@/Jetstream/PricingCard.vue';
+const props = defineProps({
+    products: {
+        type: Array,
+        default: [],
+    },
+    prices: {
+        type: Array,
+        default: [],
+    }
+});
 </script>
 
 <template>
@@ -13,9 +23,7 @@ import PricingCard from '@/Jetstream/PricingCard.vue';
 
         <div class="py-12">
             <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 d-flex">
-                <PricingCard :price="0" />                    
-                <PricingCard :price="29.99" />                  
-                <PricingCard :price="59.99" />  
+                <PricingCard v-for="(product, pKey) in props.products" :key="pKey" :product="product" :price="props.prices.filter((p)=>p.product===product.id)[0]" />    
             </div>
         </div>
     </AppLayout>

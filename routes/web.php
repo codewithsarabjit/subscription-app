@@ -3,6 +3,7 @@
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
+use App\Http\Controllers\SubscriptionController;
 
 /*
 |--------------------------------------------------------------------------
@@ -32,7 +33,6 @@ Route::middleware([
     Route::get('/dashboard', function () {
         return Inertia::render('Dashboard');
     })->name('dashboard');
-    Route::get('/plans', function () {
-        return Inertia::render('Plans');
-    })->name('plans');
+    
+    Route::get('/plans', [SubscriptionController::class, 'plans'])->name('plans');
 });
