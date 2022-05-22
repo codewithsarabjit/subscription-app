@@ -13,7 +13,7 @@ class SubscriptionController extends Controller
         $stripe = Cashier::stripe();
         $products = $stripe->products->all(); 
         $prices   = $stripe->prices->all();   
-        // dd($prices->data);
+        
         return Inertia::render('Plans', [
             'products' => array_reverse($products->data), 
             'prices' => $prices->data
