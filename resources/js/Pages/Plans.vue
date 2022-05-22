@@ -31,7 +31,7 @@ const props = defineProps({
 
         <div class="py-12">
             <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 d-flex">
-            <div class="alert alert-success">{{props.success}}</div>
+            <div class="alert alert-success" v-if="props.success">{{props.success}}</div>
                 <PricingCard v-for="(product, pKey) in props.products" :key="pKey" :product="product" :price="props.prices.filter((p)=>p.product===product.id)[0]" :subscription="subscription" />    
             </div>
         </div>

@@ -42,12 +42,39 @@ class SubscriptionController extends Controller
     public function pay($prodid, $priceid) 
     {
         $error = $_GET["error"] ?? "";
+        //auth()->user()->name
+        $customer = auth()->user()->createOrGetStripeCustomer();
+        $customer->address = [
+            'city' => 'Mohali',
+            'country' => 'India',
+            'line1' => 'Phase 3a',
+            'postal_code' => '160059',
+            'state' => 'Punjab'
+        ];
+        // 'shipping' => [
+        //     'name' => 'Jenny Rosen',
+        //     'address' => [
+        //       'line1' => '510 Townsend St',
+        //       'postal_code' => '98140',
+        //       'city' => 'San Francisco',
+        //       'state' => 'CA',
+        //       'country' => 'US',
+        //     ],
+        //   ],
+        // dd($customer);
+        $intent = auth()->user()->createSetupIntent([
+            'description' => "Saas application Subscription",
+            'customer' => $customer
+        ]);
+        // dd($intent);
+        
         return Inertia::render('Pay', [
             'prodid' => $prodid,
             'formUrl' => route('products.purchase', $prodid),
-            'intent' => auth()->user()->createSetupIntent(),
+            'intent' => $intent,
             'token' => csrf_token(),
-            'error' => $error
+            'error' => $error,
+            'stripesecret' => env('STRIPE_KEY')
         ]);
     }
 
@@ -55,7 +82,7 @@ class SubscriptionController extends Controller
     {
         $user          = $request->user();
         $paymentMethod = $request->input('payment_method');
-
+        
         try {
             $stripe = Cashier::stripe();
             $prices = $stripe->prices->all(['product' => $productId]);
@@ -64,9 +91,16 @@ class SubscriptionController extends Controller
                 return $prod['id'] === $productId;
             }))[0];
             
-            $user->createOrGetStripeCustomer();
+            $customer = $user->createOrGetStripeCustomer();
             $user->updateDefaultPaymentMethod($paymentMethod);
-            $user->charge($prices->data[0]->unit_amount, $paymentMethod);        
+            $customer->address = [
+                'city' => 'Mohali',
+                'country' => 'India',
+                'line1' => 'Phase 3a',
+                'postal_code' => '160059',
+                'state' => 'Punjab'
+            ];
+            $user->charge($prices->data[0]->unit_amount, $paymentMethod, ['off_session' => true, 'customer'=>$customer, 'description' => "Saas application Subscription"]);        
         } catch (\Exception $exception) {
             // dd($exception->getMessage());
             return Redirect::route('plans.pay', [

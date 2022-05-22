@@ -2,7 +2,7 @@
 import AppLayout from '@/Layouts/AppLayout.vue';
 import { onMounted, reactive } from '@vue/runtime-core'; 
 import $ from 'jquery';
-const props = defineProps(["prodid", "formUrl", "intent", "token", "error"]);
+const props = defineProps(["prodid", "formUrl", "intent", "token", "error", "stripesecret"]);
 
 onMounted(() => {
     
@@ -15,51 +15,86 @@ onMounted(() => {
         scriptTag.parentNode.insertBefore(object, scriptTag);
     }
     function configureStripe( URL, callback ) {
-        let stripe = Stripe("{{ env('STRIPE_KEY') }}")
-        let elements = stripe.elements()
-        let style = {
-            base: {
-                color: '#32325d',
-                fontFamily: '"Helvetica Neue", Helvetica, sans-serif',
-                fontSmoothing: 'antialiased',
-                fontSize: '16px',
-                '::placeholder': {
-                    color: '#aab7c4'
-                }
-            },
-            invalid: {
-                color: '#fa755a',
-                iconColor: '#fa755a'
-            }
-        }
-        let card = elements.create('card', {style: style})
-        card.mount('#card-element')
-        let paymentMethod = null
-        $('.card-form').on('submit', function (e) {
-            $('button.pay').attr('disabled', true)
-            if (paymentMethod) {
-                return true
-            }
-            stripe.confirmCardSetup(
-                props.intent,
-                {
+        
+        const stripe = Stripe(props.stripesecret);
+ 
+        const elements = stripe.elements();
+        const cardElement = elements.create('card');
+    
+        cardElement.mount('#card-element');
+
+        const cardHolderName = document.getElementById('card-holder-name');
+        const cardButton = document.getElementById('card-button');
+        const clientSecret = cardButton.dataset.secret;
+        
+        cardButton.addEventListener('click', async (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            const { setupIntent, error } = await stripe.confirmCardSetup(
+                clientSecret, {
                     payment_method: {
-                        card: card,
-                        billing_details: {name: $('.card_holder_name').val()}
+                        card: cardElement,
+                        billing_details: { name: cardHolderName.value }
                     }
                 }
-            ).then(function (result) {
-                if (result.error) {
-                    $('#card-errors').text(result.error.message)
-                    $('button.pay').removeAttr('disabled')
-                } else {
-                    paymentMethod = result.setupIntent.payment_method
-                    $('.payment-method').val(paymentMethod)
+            );
+        
+            if (error) {
+                // Display "error.message" to the user...
+            } else {
+                    $('.payment-method').val(setupIntent.payment_method)
                     $('.card-form').submit()
-                }
-            })
-            return false
-        })
+                // The card has been verified successfully...
+            }
+        });
+        
+        
+        // let style = {
+        //     base: {
+        //         color: '#32325d',
+        //         fontFamily: '"Helvetica Neue", Helvetica, sans-serif',
+        //         fontSmoothing: 'antialiased',
+        //         fontSize: '16px',
+        //         '::placeholder': {
+        //             color: '#aab7c4'
+        //         }
+        //     },
+        //     invalid: {
+        //         color: '#fa755a',
+        //         iconColor: '#fa755a'
+        //     }
+        // }
+        
+    //     let paymentMethod = null
+    //     $('.card-form').on('submit', async function (e) {
+    //         e.preventDefault();
+    //         e.stopPropagation();
+    //         $('button.pay').attr('disabled', true)
+    //         if (paymentMethod) {
+    //             return true
+    //         }
+    //         stripe.confirmCardSetup(
+    //             props.intent,
+    //             {
+    //                 payment_method: {
+    //                     card: card,
+    //                     billing_details: {name: $('.card_holder_name').val()}
+    //                 }
+    //             }
+    //         ).then(function (result) {
+    //             if (result.error) {
+    //                 $('#card-errors').text(result.error.message)
+    //                 $('button.pay').removeAttr('disabled')
+    //             } else {
+    //                 paymentMethod = result.setupIntent.payment_method
+    //                 console.log(paymentMethod);
+    //                 return;
+    //                 $('.payment-method').val(paymentMethod)
+    //                 $('.card-form').submit()
+    //             }
+    //         })
+    //         return false
+    //     })
     }
 
     includeStripe('js.stripe.com/v3/', function(){
@@ -84,17 +119,17 @@ onMounted(() => {
             <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 d-flex">
                 <div class="md:grid md:grid-cols-3 md:gap-6">
                     <div class="mt-5 md:mt-0 md:col-span-2">
-                    <div class="alert alert-error">{{props.error}}</div>
+                    <div class="alert alert-error" v-if="props.error">{{props.error}}</div>
                         <form method="POST" :action="props.formUrl" class="card-form mt-3 mb-3">
                             <input type="hidden" name="_token" :value="props.token" />
                             <input type="hidden" name="payment_method" class="payment-method">
-                            <input class="StripeElement mb-3" name="card_holder_name" placeholder="Card holder name" required>
+                            <input id="card-holder-name" type="text" class="StripeElement mb-3" name="card_holder_name" placeholder="Card holder name" required>
                             <div class="col-lg-4 col-md-6">
                                 <div id="card-element"></div>
                             </div>
                             <div id="card-errors" role="alert"></div>
                             <div class="form-group mt-3">
-                                <button type="submit" class="btn btn-primary pay">
+                                <button id="card-button" class="btn btn-primary pay" :data-secret="props.intent.client_secret">
                                     Purchase
                                 </button>
                             </div>
