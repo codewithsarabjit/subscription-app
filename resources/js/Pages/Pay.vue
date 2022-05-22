@@ -1,0 +1,134 @@
+<script setup>
+import AppLayout from '@/Layouts/AppLayout.vue';
+import { onMounted, reactive } from '@vue/runtime-core'; 
+import $ from 'jquery';
+const props = defineProps(["prodid", "formUrl", "intent", "token", "error"]);
+
+onMounted(() => {
+    
+    function includeStripe( URL, callback ) {
+        let documentTag = document, tag = 'script',
+            object = documentTag.createElement(tag),
+            scriptTag = documentTag.getElementsByTagName(tag)[0];
+        object.src = '//' + URL;
+        if (callback) { object.addEventListener('load', function (e) { callback(null, e); }, false); }
+        scriptTag.parentNode.insertBefore(object, scriptTag);
+    }
+    function configureStripe( URL, callback ) {
+        let stripe = Stripe("{{ env('STRIPE_KEY') }}")
+        let elements = stripe.elements()
+        let style = {
+            base: {
+                color: '#32325d',
+                fontFamily: '"Helvetica Neue", Helvetica, sans-serif',
+                fontSmoothing: 'antialiased',
+                fontSize: '16px',
+                '::placeholder': {
+                    color: '#aab7c4'
+                }
+            },
+            invalid: {
+                color: '#fa755a',
+                iconColor: '#fa755a'
+            }
+        }
+        let card = elements.create('card', {style: style})
+        card.mount('#card-element')
+        let paymentMethod = null
+        $('.card-form').on('submit', function (e) {
+            $('button.pay').attr('disabled', true)
+            if (paymentMethod) {
+                return true
+            }
+            stripe.confirmCardSetup(
+                props.intent,
+                {
+                    payment_method: {
+                        card: card,
+                        billing_details: {name: $('.card_holder_name').val()}
+                    }
+                }
+            ).then(function (result) {
+                if (result.error) {
+                    $('#card-errors').text(result.error.message)
+                    $('button.pay').removeAttr('disabled')
+                } else {
+                    paymentMethod = result.setupIntent.payment_method
+                    $('.payment-method').val(paymentMethod)
+                    $('.card-form').submit()
+                }
+            })
+            return false
+        })
+    }
+
+    includeStripe('js.stripe.com/v3/', function(){
+        configureStripe();
+    }.bind(this) );
+    
+    
+    
+})
+</script>
+
+<template>
+    <AppLayout title="Dashboard">
+        <template #header>
+            <h2 class="font-semibold text-xl text-gray-800 leading-tight">
+                Subscription Payment
+            </h2>
+        </template>
+
+
+        <div class="py-12">
+            <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 d-flex">
+                <div class="md:grid md:grid-cols-3 md:gap-6">
+                    <div class="mt-5 md:mt-0 md:col-span-2">
+                    <div class="alert alert-error">{{props.error}}</div>
+                        <form method="POST" :action="props.formUrl" class="card-form mt-3 mb-3">
+                            <input type="hidden" name="_token" :value="props.token" />
+                            <input type="hidden" name="payment_method" class="payment-method">
+                            <input class="StripeElement mb-3" name="card_holder_name" placeholder="Card holder name" required>
+                            <div class="col-lg-4 col-md-6">
+                                <div id="card-element"></div>
+                            </div>
+                            <div id="card-errors" role="alert"></div>
+                            <div class="form-group mt-3">
+                                <button type="submit" class="btn btn-primary pay">
+                                    Purchase
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>   
+            </div>
+        </div>
+    </AppLayout>
+</template>
+<style>
+    .alert.alert-error{
+        background-color: rgb(221, 118, 118);
+        padding: 10px 10px;
+        color: white;
+    }
+    .StripeElement {
+        box-sizing: border-box;
+        height: 40px;
+        padding: 10px 12px;
+        border: 1px solid transparent;
+        border-radius: 4px;
+        background-color: white;
+        box-shadow: 0 1px 3px 0 #e6ebf1;
+        -webkit-transition: box-shadow 150ms ease;
+        transition: box-shadow 150ms ease;
+    }
+    .StripeElement--focus {
+        box-shadow: 0 1px 3px 0 #cfd7df;
+    }
+    .StripeElement--invalid {
+        border-color: #fa755a;
+    }
+    .StripeElement--webkit-autofill {
+        background-color: #fefde5 !important;
+    }
+</style>

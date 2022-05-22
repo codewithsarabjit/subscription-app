@@ -12,7 +12,7 @@ use App\Models\User;
 
 class SubscriptionController extends Controller
 {
-    public function index(Request $request) 
+    public function index(Request $request, $success = null) 
     {
         $stripe = Cashier::stripe();
         $products = $stripe->products->all(); 
@@ -21,7 +21,8 @@ class SubscriptionController extends Controller
         return Inertia::render('Plans', [
             'products' => array_reverse($products->data), 
             'prices' => $prices->data,
-            'subscription' => $subscription
+            'subscription' => $subscription,
+            'success' => $success
         ]);
     }
 
@@ -32,15 +33,52 @@ class SubscriptionController extends Controller
             $this->subscribe($requestData["product"], $requestData["id"], Auth::user(), "Basic");
             return Redirect::route('plans.index');
         }
-        dd($requestData);
-        // $stripe = Cashier::stripe();
-        // $products = $stripe->products->all(); 
-        // $prices   = $stripe->prices->all();   
-        
-        // return Inertia::render('Plans', [
-        //     'products' => array_reverse($products->data), 
-        //     'prices' => $prices->data
-        // ]);
+        return Redirect::route('plans.pay', [
+            'prodid' => $requestData["product"],
+            'priceid' => $requestData["id"]
+        ]);
+    }
+
+    public function pay($prodid, $priceid) 
+    {
+        $error = $_GET["error"] ?? "";
+        return Inertia::render('Pay', [
+            'prodid' => $prodid,
+            'formUrl' => route('products.purchase', $prodid),
+            'intent' => auth()->user()->createSetupIntent(),
+            'token' => csrf_token(),
+            'error' => $error
+        ]);
+    }
+
+    public function purchase(Request $request, $productId)
+    {
+        $user          = $request->user();
+        $paymentMethod = $request->input('payment_method');
+
+        try {
+            $stripe = Cashier::stripe();
+            $prices = $stripe->prices->all(['product' => $productId]);
+            $products = $stripe->products->all();
+            $newProduct = array_values(array_filter($products->data, function ($prod) use ($productId) {
+                return $prod['id'] === $productId;
+            }))[0];
+            
+            $user->createOrGetStripeCustomer();
+            $user->updateDefaultPaymentMethod($paymentMethod);
+            $user->charge($prices->data[0]->unit_amount, $paymentMethod);        
+        } catch (\Exception $exception) {
+            // dd($exception->getMessage());
+            return Redirect::route('plans.pay', [
+                'prodid' => $productId,
+                'priceid' => $prices->data[0]->id,
+                'error' => $exception->getMessage(),
+            ]);
+        }
+        $user->newSubscription($newProduct->name, $prices->data[0]->id)->add();
+        return Redirect::route('plans.index', [
+            'success' => 'Product purchased successfully!',
+        ]);
     }
 
     protected function subscribe($prodId, $priceId, $user, $newSubscription) {;
