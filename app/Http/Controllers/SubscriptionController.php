@@ -33,12 +33,11 @@ class SubscriptionController extends Controller
             return Redirect::route('plans.index');
         }
         return Redirect::route('plans.pay', [
-            'prodid' => $requestData["product"],
-            'priceid' => $requestData["id"]
+            'prodid' => $requestData["product"]
         ]);
     }
 
-    public function pay($prodid, $priceid) 
+    public function pay($prodid) 
     {
         $error = $_GET["error"] ?? "";
         $customer = auth()->user()->createOrGetStripeCustomer();
@@ -99,7 +98,6 @@ class SubscriptionController extends Controller
         } catch (\Exception $exception) {
             return Redirect::route('plans.pay', [
                 'prodid' => $productId,
-                'priceid' => $prices->data[0]->id,
                 'error' => $exception->getMessage(),
             ]);
         }        

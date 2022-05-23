@@ -36,7 +36,7 @@ Route::middleware([
     Route::name('plans.')->group(function () {
         Route::get('/plans', [SubscriptionController::class, 'index'])->name('index');
         Route::put('/plans', [SubscriptionController::class, 'update'])->name('update');
-        Route::get('/pay/{prodid}/{priceid}', [SubscriptionController::class, 'pay'])->name('pay');
+        Route::get('/pay/{prodid}', [SubscriptionController::class, 'pay'])->name('pay');
     });
     Route::post('/products/{id}/purchase', [SubscriptionController::class, 'purchase'])->name('products.purchase');
 });

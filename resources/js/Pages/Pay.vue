@@ -2,7 +2,7 @@
 import AppLayout from '@/Layouts/AppLayout.vue';
 import { onMounted, reactive } from '@vue/runtime-core'; 
 import $ from 'jquery';
-const props = defineProps(["prodid", "formUrl", "intent", "token", "error", "stripesecret"]);
+const props = defineProps(["prodid", "formUrl", "intent", "token", "error", "stripesecret", "cards"]);
 
 onMounted(() => {
     
@@ -127,6 +127,6 @@ onMounted(() => {
         background: rgb(16, 115, 235);
         color: white;
         padding: 2px 10px;
-        
+
     }
 </style>
