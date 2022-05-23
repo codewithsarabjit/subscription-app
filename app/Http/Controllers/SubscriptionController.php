@@ -12,7 +12,7 @@ use App\Models\User;
 
 class SubscriptionController extends Controller
 {
-    public function index(Request $request, $success = null) 
+    public function index(Request $request) 
     {
         $stripe = Cashier::stripe();
         $products = $stripe->products->all(); 
@@ -21,8 +21,7 @@ class SubscriptionController extends Controller
         return Inertia::render('Plans', [
             'products' => array_reverse($products->data), 
             'prices' => $prices->data,
-            'subscription' => $subscription,
-            'success' => $success
+            'subscription' => $subscription
         ]);
     }
 
@@ -42,7 +41,6 @@ class SubscriptionController extends Controller
     public function pay($prodid, $priceid) 
     {
         $error = $_GET["error"] ?? "";
-        //auth()->user()->name
         $customer = auth()->user()->createOrGetStripeCustomer();
         $customer->address = [
             'city' => 'Mohali',
@@ -51,30 +49,20 @@ class SubscriptionController extends Controller
             'postal_code' => '160059',
             'state' => 'Punjab'
         ];
-        // 'shipping' => [
-        //     'name' => 'Jenny Rosen',
-        //     'address' => [
-        //       'line1' => '510 Townsend St',
-        //       'postal_code' => '98140',
-        //       'city' => 'San Francisco',
-        //       'state' => 'CA',
-        //       'country' => 'US',
-        //     ],
-        //   ],
-        // dd($customer);
         $intent = auth()->user()->createSetupIntent([
             'description' => "Saas application Subscription",
             'customer' => $customer
         ]);
-        // dd($intent);
-        
+        $paymentMethods = auth()->user()->paymentMethods();
+                
         return Inertia::render('Pay', [
             'prodid' => $prodid,
             'formUrl' => route('products.purchase', $prodid),
             'intent' => $intent,
             'token' => csrf_token(),
             'error' => $error,
-            'stripesecret' => env('STRIPE_KEY')
+            'stripesecret' => env('STRIPE_KEY'),
+            'cards' => $paymentMethods
         ]);
     }
 
@@ -82,6 +70,7 @@ class SubscriptionController extends Controller
     {
         $user          = $request->user();
         $paymentMethod = $request->input('payment_method');
+
         
         try {
             $stripe = Cashier::stripe();
@@ -100,23 +89,24 @@ class SubscriptionController extends Controller
                 'postal_code' => '160059',
                 'state' => 'Punjab'
             ];
-            $user->charge($prices->data[0]->unit_amount, $paymentMethod, ['off_session' => true, 'customer'=>$customer, 'description' => "Saas application Subscription"]);        
+            
+            $user->subscription('Basic')->cancelNow();
+            $user->subscription('Starter')->cancelNow();
+            $user->subscription('Enterprise')->cancelNow();
+            
+            $user->newSubscription($newProduct->name, $prices->data[0]->id)->add();
+            
         } catch (\Exception $exception) {
-            // dd($exception->getMessage());
             return Redirect::route('plans.pay', [
                 'prodid' => $productId,
                 'priceid' => $prices->data[0]->id,
                 'error' => $exception->getMessage(),
             ]);
-        }
-        $user->newSubscription($newProduct->name, $prices->data[0]->id)->add();
-        return Redirect::route('plans.index', [
-            'success' => 'Product purchased successfully!',
-        ]);
+        }        
+        return Redirect::route('plans.index');
     }
 
-    protected function subscribe($prodId, $priceId, $user, $newSubscription) {;
-        // $user->createOrGetStripeCustomer();
+    protected function subscribe($prodId, $priceId, $user, $newSubscription) {
         $subscribed = $user->subscribed($newSubscription);
         
         if ($subscribed === null || $subscribed === false) {

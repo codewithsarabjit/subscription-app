@@ -47,54 +47,6 @@ onMounted(() => {
                 // The card has been verified successfully...
             }
         });
-        
-        
-        // let style = {
-        //     base: {
-        //         color: '#32325d',
-        //         fontFamily: '"Helvetica Neue", Helvetica, sans-serif',
-        //         fontSmoothing: 'antialiased',
-        //         fontSize: '16px',
-        //         '::placeholder': {
-        //             color: '#aab7c4'
-        //         }
-        //     },
-        //     invalid: {
-        //         color: '#fa755a',
-        //         iconColor: '#fa755a'
-        //     }
-        // }
-        
-    //     let paymentMethod = null
-    //     $('.card-form').on('submit', async function (e) {
-    //         e.preventDefault();
-    //         e.stopPropagation();
-    //         $('button.pay').attr('disabled', true)
-    //         if (paymentMethod) {
-    //             return true
-    //         }
-    //         stripe.confirmCardSetup(
-    //             props.intent,
-    //             {
-    //                 payment_method: {
-    //                     card: card,
-    //                     billing_details: {name: $('.card_holder_name').val()}
-    //                 }
-    //             }
-    //         ).then(function (result) {
-    //             if (result.error) {
-    //                 $('#card-errors').text(result.error.message)
-    //                 $('button.pay').removeAttr('disabled')
-    //             } else {
-    //                 paymentMethod = result.setupIntent.payment_method
-    //                 console.log(paymentMethod);
-    //                 return;
-    //                 $('.payment-method').val(paymentMethod)
-    //                 $('.card-form').submit()
-    //             }
-    //         })
-    //         return false
-    //     })
     }
 
     includeStripe('js.stripe.com/v3/', function(){
@@ -119,7 +71,7 @@ onMounted(() => {
             <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 d-flex">
                 <div class="md:grid md:grid-cols-3 md:gap-6">
                     <div class="mt-5 md:mt-0 md:col-span-2">
-                    <div class="alert alert-error" v-if="props.error">{{props.error}}</div>
+                        <div class="alert alert-error" v-if="props.error">{{props.error}}</div>
                         <form method="POST" :action="props.formUrl" class="card-form mt-3 mb-3">
                             <input type="hidden" name="_token" :value="props.token" />
                             <input type="hidden" name="payment_method" class="payment-method">
@@ -165,5 +117,16 @@ onMounted(() => {
     }
     .StripeElement--webkit-autofill {
         background-color: #fefde5 !important;
+    }
+    .card-form{
+        border: 2px solid lightgray;
+        padding: 20px;
+        border-radius: 10px;
+    }
+    .btn-primary{
+        background: rgb(16, 115, 235);
+        color: white;
+        padding: 2px 10px;
+        
     }
 </style>
