@@ -12,6 +12,19 @@ use App\Models\User;
 
 class SubscriptionController extends Controller
 {
+    public function dashboard(Request $request) 
+    {
+        $stripe = Cashier::stripe();
+        $products = $stripe->products->all(); 
+        $prices   = $stripe->prices->all();   
+        $subscription = Auth::user()->subscriptions()->active()->latest()->first();
+        return Inertia::render('Dashboard', [
+            'products' => array_reverse($products->data), 
+            'prices' => $prices->data,
+            'subscription' => $subscription,
+            'user' => auth()->user(),
+        ]);
+    }
     public function index(Request $request) 
     {
         $stripe = Cashier::stripe();

@@ -30,9 +30,6 @@ const submit = () => {
     <Head title="Reset Password" />
 
     <JetAuthenticationCard>
-        <template #logo>
-            <JetAuthenticationCardLogo />
-        </template>
 
         <JetValidationErrors class="mb-4" />
 
